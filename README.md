@@ -14,15 +14,16 @@ What this app does today:
 - View past orders (`orders` query, scoped to the signed-in user by the backend).
 - Search for similar products by uploading an image to Django's `POST /api/v1/ai/similarity/search/`.
 - Show a list of branches with distance from the device (when location permission is granted).
-- A "Notifications" tab with a placeholder feed + a session card with logout. There is no push-notification wiring (no `expo-notifications`, no project ID).
+- A **real notification center** ("Avisos" tab) backed by `expo-notifications`: permission flow, Expo push token retrieval, foreground/tap subscriptions, mark-read / clear actions, badge with the unread count, and a "send local test notification" button (native only). See [docs/architecture/PUSH_NOTIFICATIONS.md](docs/architecture/PUSH_NOTIFICATIONS.md).
 
 What this app does **not** do:
 
-- It does **not** ship to the App Store or Play Store today. The icons/splash referenced in `app.json` exist as PNG placeholders under `assets/`.
-- There is **no** Detox/native e2e suite. The Playwright spec that touches this app (`customer-rbac.spec.ts` in the Angular repo) targets the Expo Web build.
+- It does **not** ship a server-side push campaign sender. The Go service stores the device's Expo push token (table `push_tokens`, mutations `registerPushToken` / `unregisterPushToken`, query `myPushTokens`), but there is no scheduled job that actually POSTs to the Expo push service. The mobile side is wired end-to-end; the outbound delivery is the integration that is left for production (documented in [docs/architecture/PUSH_NOTIFICATIONS.md](docs/architecture/PUSH_NOTIFICATIONS.md)).
+- It does **not** auto-prompt for the notification permission at app start — only the "Avisos" tab requests it on demand via a button, so the first impression is not a permission dialog.
+- It does **not** ship to the App Store or Play Store today. The icons/splash referenced in `app.json` are placeholders.
 - There is **no** persistent Apollo cache. The cart is the only data persisted between launches.
 - There is **no** silent token refresh. When the access token expires, the user is signed out and asked to log in again.
-- There is **no** sample of camera capture on web. `expo-image-picker` falls back to file selection on web; the actual camera tab works on Expo Go / a native dev build.
+- There is **no** real camera capture on web. `expo-image-picker` falls back to file selection on web; the actual camera tab works on Expo Go / a native dev build.
 
 ---
 
@@ -193,11 +194,57 @@ The backend embedding is pHash + HSV histogram — not a CNN — so similarity c
 
 ## Known limitations
 
-- Push notifications are **scaffolded only** — the tab exists and renders a placeholder. `expo-notifications` is not installed; APNs/FCM are not configured.
+- **End-to-end mobile delivery to real APNs / FCM is not configured.** That step belongs to EAS Build + Expo Application Services. Until those are wired, iOS notifications only run from an EAS dev/preview build; Android still works in Expo Go.
+- **EAS `projectId` is read at runtime if present.** It is not hard-coded — see `notifications.service.ts` (`getExpoPushTokenAsync({ projectId })`). Run `npx eas init` to populate it.
+- **No scheduled / cron-driven campaign trigger.** The `sendPushCampaign` GraphQL mutation works (and admin can fire it manually right now); what's missing is a worker that automatically runs it on a schedule.
 - No persistent Apollo cache. Catalog queries hit the network on every cold start.
-- Token rotation is not implemented. On `exp`, the user is signed out.
+- No silent JWT refresh. On `exp`, the user is signed out.
 - Web does not have access to a real device camera — `expo-image-picker` falls back to the browser file picker on web.
-- Detox / Maestro e2e is not wired. Manual QA is the current coverage.
+
+## Docker-verified push notification surface
+
+Everything below was proved against the live full-stack compose (`docker-compose.full.yml`) on **2026-05-23**:
+
+| Layer | How | Result |
+|-------|-----|--------|
+| **Server push sender** (`internal/service/PushSender`) | 9 Go unit tests against `httptest.NewServer` (happy path, `DeviceNotRegistered` deactivation, HTTP 500, malformed JSON, 250-token batching at 100/batch, `Authorization` header pass-through, no-tokens-isn't-an-error) | 9/9 pass |
+| **GraphQL RBAC** (`sendPushCampaign`, `sendTestPushNotification`) | 7 Go resolver tests using a synthetic claims context + httptest fake-Expo fixture | 7/7 pass; customer + staff + anonymous all rejected with `forbidden`/`unauthenticated`; admin succeeds and the fake-Expo captures the expected payload |
+| **Fake Expo container** (`cmd/fake-expo-push/`) | Built and runs in `docker-compose.full.yml` as `fake-expo-push` on host port 8095. Inspector at `GET /inspect/calls`. | Healthy |
+| **End-to-end smoke (curl)** | Login as `cliente`, register `ExponentPushToken[smoke-good]`, register `ExponentPushToken[BAD-token]`, admin runs `sendPushCampaign` | Result: `sent=1, failed=1, deactivated=1`. `fake-expo` `/inspect/calls` shows one HTTP POST with both messages, title `"Otoño 2026"`. After the campaign the BAD token is `is_active=false`. |
+| **Customer self-test (`sendTestPushNotification`)** | Customer fires `Ping/Pong` → fake-Expo receives exactly one message targeted at the customer's own token | passes — confirms test mutation never reaches another user's tokens |
+| **Mobile side state machine** | 31 Jest tests across 6 suites (`notification-store`, `notification-screen-state`, `notification-pure`, `notifications.gql`, `ai.service`, `useLocation`) | 31/31 pass |
+| **Expo Web bundle** | `npx expo export -p web` produces `dist/` (1.67 MB, 1094 modules) | builds cleanly |
+| **Playwright @ 390×844** | 6 specs against the live `mobile-web` nginx container (login renders; customer reaches catalog; Avisos shows real notification center; old placeholder copy is gone; session card with logout; no raw GraphQL/Apollo error text; admin login also reaches Avisos) | 6/6 pass |
+
+What is **not** verified in Docker (proven impossible to verify without a physical iOS/Android device + EAS credentials):
+
+- Real Expo push delivery → APNs → iPhone lockscreen.
+- Real Expo push delivery → FCM → Android notification shade.
+- `expo-notifications` foreground/tap listener firing on a real device.
+- iOS-specific permission prompt UI.
+
+Everything strictly *before* "device receives the push" is Docker-verified.
+
+## Automated QA
+
+| Layer | Tooling | What's covered |
+|-------|---------|----------------|
+| Notification reducer | Jest (`notification-store.test.ts`) | 11 cases |
+| Notification screen-state derivation | Jest (`notification-screen-state.test.ts`) | 7 cases |
+| Pure helpers (token abbreviation, content → inbox item) | Jest (`notification-pure.test.ts`) | 6 cases |
+| GraphQL document shape | Jest (`notifications.gql.test.ts`) | 3 cases |
+| Pre-existing modules | Jest (`ai.service.test.ts`, `useLocation.test.ts`) | 4 cases |
+| **Playwright @ 390×844 vs live Docker bundle** | `e2e/notifications.spec.ts` against `mobile-web` container | 6 cases |
+
+```
+npm run test            # 31 tests across 6 suites
+npm run typecheck
+npm run lint
+npx expo export -p web  # builds the static bundle
+npm run e2e             # Playwright vs live mobile-web container
+```
+
+All five commands pass on the current tree. Note: `npm run e2e` requires the full docker compose to be up (it expects `localhost:4300` to be the mobile-web container and `localhost:8093` to be the Go core).
 
 ---
 

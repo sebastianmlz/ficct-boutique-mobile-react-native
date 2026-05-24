@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { apolloClient } from '@/services/graphql/client';
 import { AuthProvider } from '@/services/auth/auth.context';
+import { NotificationsProvider } from '@/services/notifications/notifications.context';
 import { RootNavigator } from '@/navigation/RootNavigator';
 
 export default function App() {
@@ -16,10 +17,12 @@ export default function App() {
       <SafeAreaProvider>
         <ApolloProvider client={apolloClient}>
           <AuthProvider>
-            <NavigationContainer>
-              <StatusBar style="dark" />
-              <RootNavigator />
-            </NavigationContainer>
+            <NotificationsProvider>
+              <NavigationContainer>
+                <StatusBar style="dark" />
+                <RootNavigator />
+              </NavigationContainer>
+            </NotificationsProvider>
           </AuthProvider>
         </ApolloProvider>
       </SafeAreaProvider>

@@ -11,21 +11,31 @@
       "resizeMode": "contain",
       "backgroundColor": "#fafaf9"
     },
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#9a3412",
+      "androidMode": "default"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "bo.edu.ficct.boutique"
+      "bundleIdentifier": "bo.edu.ficct.boutique",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#fafaf9"
       },
-      "package": "bo.edu.ficct.boutique"
+      "package": "bo.edu.ficct.boutique",
+      "permissions": ["NOTIFICATIONS"]
     },
     "web": { "favicon": "./assets/icon.png", "bundler": "metro" },
     "plugins": [
       ["expo-image-picker", { "photosPermission": "Permitir acceso a fotos para buscar prendas similares." }],
-      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Permitir ubicación para mostrar la sucursal más cercana." }]
+      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Permitir ubicación para mostrar la sucursal más cercana." }],
+      ["expo-notifications", { "icon": "./assets/icon.png", "color": "#9a3412" }]
     ],
     "extra": {
       "graphqlUrl": "http://10.0.2.2:8080/graphql",
