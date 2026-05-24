@@ -1,0 +1,11 @@
+node_modules
+.expo
+dist
+web-build
+.git
+.gitignore
+README.md
+.idea
+.vscode
+.env
+.env.*

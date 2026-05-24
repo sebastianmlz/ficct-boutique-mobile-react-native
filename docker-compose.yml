@@ -1,0 +1,22 @@
+services:
+  metro:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    image: ficct-boutique-mobile:dev
+    container_name: ficct-mobile-metro
+    ports:
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+      - "8081:8081"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    environment:
+      EXPO_NO_DOTENV: "1"
+    command: >
+      sh -c "npx expo start --host lan --port 19000"
+    stdin_open: true
+    tty: true

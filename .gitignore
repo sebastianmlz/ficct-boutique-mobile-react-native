@@ -1,0 +1,22 @@
+node_modules
+.expo
+dist
+web-build
+.DS_Store
+Thumbs.db
+.env
+.env.local
+.env.*.local
+*.log
+.idea
+.vscode
+
+# Playwright / browser MCP
+.playwright-mcp/
+test-results/
+playwright-report/
+
+# Stray root-level screenshots
+/*.png
+/*.jpg
+/*.jpeg

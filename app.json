@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "FICCT Boutique",
+    "slug": "ficct-boutique-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#fafaf9"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "bo.edu.ficct.boutique"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#fafaf9"
+      },
+      "package": "bo.edu.ficct.boutique"
+    },
+    "web": { "favicon": "./assets/icon.png", "bundler": "metro" },
+    "plugins": [
+      ["expo-image-picker", { "photosPermission": "Permitir acceso a fotos para buscar prendas similares." }],
+      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Permitir ubicación para mostrar la sucursal más cercana." }]
+    ],
+    "extra": {
+      "graphqlUrl": "http://10.0.2.2:8080/graphql",
+      "aiApiUrl": "http://10.0.2.2:8000/api/v1"
+    }
+  }
+}
