@@ -1,22 +1,17 @@
+// Back-compat shim: the original EmptyState now delegates to the design-system
+// AppEmptyState so existing call sites get the branded look automatically.
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { AppEmptyState } from './AppEmptyState';
+import type { IconName } from './AppIcon';
 
 interface Props {
   title: string;
   subtitle?: string;
+  icon?: IconName;
 }
 
-export function EmptyState({ title, subtitle }: Props) {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-    </View>
-  );
+export function EmptyState({ title, subtitle, icon }: Props) {
+  return <AppEmptyState title={title} subtitle={subtitle} icon={icon} />;
 }
 
-const styles = StyleSheet.create({
-  container: { alignItems: 'center', justifyContent: 'center', padding: 24 },
-  title: { fontSize: 15, fontWeight: '600', color: '#1c1917' },
-  subtitle: { color: '#78716c', marginTop: 4, textAlign: 'center' },
-});
+export default EmptyState;

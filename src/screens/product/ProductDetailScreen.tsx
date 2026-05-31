@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { gql, useQuery } from '@apollo/client';
 import type { RouteProp } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native';
 
 import type { Product, Variant } from '@/models';
 import { useCart } from '@/hooks/useCart';
+import { AppBadge, AppButton, AppErrorState, AppIcon, AppLoadingState, ScreenContainer } from '@/components';
+import { colors, fonts, fontSize, fontWeight, radius, spacing } from '@/theme';
 
 const PRODUCT_QUERY = gql`
   query MobileProduct($id: UUID!) {
@@ -39,17 +41,16 @@ export function ProductDetailScreen() {
     variables: { id: route.params.productId },
   });
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" /></View>;
-  if (error || !data?.product) return <View style={styles.center}><Text style={styles.err}>{error?.message ?? 'Producto no encontrado'}</Text></View>;
+  if (loading) return <AppLoadingState label="Cargando producto…" />;
+  if (error || !data?.product) {
+    return <AppErrorState title="Producto no encontrado" message="No pudimos cargar este producto. Vuelve al catálogo e inténtalo de nuevo." />;
+  }
 
   const product = data.product;
   const totalStock = (variant: Variant) => variant.stock.reduce((s, e) => s + e.quantity, 0);
 
   const onAdd = async (): Promise<void> => {
-    if (!selected) {
-      Alert.alert('Seleccione una variante');
-      return;
-    }
+    if (!selected) return;
     const unit = selected.priceOverride ?? product.basePrice;
     await add({
       variantId: selected.id,
@@ -61,67 +62,82 @@ export function ProductDetailScreen() {
       quantity: 1,
       imageUrl: product.imageUrl,
     });
-    Alert.alert('Añadido al carrito');
+    Alert.alert('Añadido al carrito', `${product.name} · ${selected.size} / ${selected.color}`);
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {product.imageUrl ? (
-        <Image source={{ uri: product.imageUrl }} style={styles.image} />
-      ) : (
-        <View style={[styles.image, styles.placeholder]}>
-          <Text style={{ color: '#78716c' }}>Sin imagen</Text>
-        </View>
-      )}
-      <Text style={styles.sku}>SKU {product.sku}</Text>
-      <Text style={styles.title}>{product.name}</Text>
-      <Text style={styles.price}>{product.currency} {product.basePrice.toFixed(2)}</Text>
-      {product.description ? <Text style={styles.description}>{product.description}</Text> : null}
+    <ScreenContainer scroll>
+      <View style={styles.imageWrap}>
+        {product.imageUrl ? (
+          <Image source={{ uri: product.imageUrl }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={[styles.image, styles.placeholder]}>
+            <AppIcon name="image" size={28} color={colors.mute} />
+          </View>
+        )}
+      </View>
+
+      <View style={styles.head}>
+        <Text style={styles.sku}>SKU {product.sku}</Text>
+        <Text style={styles.title}>{product.name}</Text>
+        <Text style={styles.price}>
+          {product.currency} {product.basePrice.toFixed(2)}
+        </Text>
+        {product.description ? <Text style={styles.description}>{product.description}</Text> : null}
+      </View>
 
       <Text style={styles.section}>Variantes</Text>
       <View style={styles.variantGrid}>
         {product.variants.map((v) => {
           const stock = totalStock(v);
           const selectedNow = selected?.id === v.id;
+          const out = stock === 0;
           return (
-            <TouchableOpacity
+            <Pressable
               key={v.id}
-              style={[styles.variant, selectedNow && styles.variantSelected, stock === 0 && styles.variantDisabled]}
-              disabled={stock === 0}
+              style={[styles.variant, selectedNow && styles.variantSelected, out && styles.variantDisabled]}
+              disabled={out}
               onPress={() => setSelected(v)}
             >
-              <Text style={[styles.variantText, selectedNow && styles.variantTextSelected]}>{v.size} • {v.color}</Text>
-              <Text style={styles.variantStock}>{stock > 0 ? `${stock} en stock` : 'Agotado'}</Text>
-            </TouchableOpacity>
+              <Text style={[styles.variantText, selectedNow && styles.variantTextSelected]}>
+                {v.size} · {v.color}
+              </Text>
+              <View style={styles.variantStock}>
+                <AppBadge label={out ? 'Agotado' : `${stock} en stock`} tone={out ? 'deleted' : 'active'} />
+              </View>
+            </Pressable>
           );
         })}
       </View>
 
-      <TouchableOpacity style={styles.addButton} onPress={onAdd} disabled={!selected}>
-        <Text style={styles.addText}>Añadir al carrito</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      <AppButton
+        label={selected ? 'Añadir al carrito' : 'Selecciona una variante'}
+        icon="cart"
+        onPress={onAdd}
+        disabled={!selected}
+        fullWidth
+        style={styles.add}
+      />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  err: { color: '#b91c1c' },
-  image: { width: '100%', aspectRatio: 1, borderRadius: 12, backgroundColor: '#f5f5f4' },
+  imageWrap: { borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.line },
+  image: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt },
   placeholder: { alignItems: 'center', justifyContent: 'center' },
-  sku: { color: '#78716c', fontSize: 11, marginTop: 12, letterSpacing: 1 },
-  title: { fontSize: 22, fontWeight: '700', marginTop: 2 },
-  price: { fontSize: 20, fontWeight: '700', marginTop: 6, color: '#1c1917' },
-  description: { color: '#44403c', marginTop: 12, lineHeight: 20 },
-  section: { fontSize: 14, fontWeight: '600', marginTop: 20, marginBottom: 8 },
-  variantGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  variant: { borderColor: '#e7e5e4', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fff' },
-  variantSelected: { borderColor: '#1c1917', backgroundColor: '#1c1917' },
-  variantDisabled: { opacity: 0.4 },
-  variantText: { color: '#1c1917', fontWeight: '600', fontSize: 13 },
-  variantTextSelected: { color: '#fafaf9' },
-  variantStock: { color: '#78716c', fontSize: 11, marginTop: 2 },
-  addButton: { marginTop: 28, backgroundColor: '#1c1917', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  addText: { color: '#fafaf9', fontWeight: '600', fontSize: 15 },
+  head: { gap: 4 },
+  sku: { color: colors.mute, fontSize: fontSize.xs, letterSpacing: 1 },
+  title: { fontFamily: fonts.display, fontSize: fontSize.xxl, color: colors.ink, letterSpacing: -0.3 },
+  price: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.accent, marginTop: 2 },
+  description: { color: colors.inkSoft, marginTop: spacing.sm, lineHeight: 21, fontSize: fontSize.sm },
+  section: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.ink },
+  variantGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  variant: { borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.white, gap: 6 },
+  variantSelected: { borderColor: colors.ink, backgroundColor: colors.ink },
+  variantDisabled: { opacity: 0.45 },
+  variantText: { color: colors.ink, fontWeight: fontWeight.semibold, fontSize: fontSize.sm },
+  variantTextSelected: { color: colors.paper },
+  variantStock: { alignSelf: 'flex-start' },
+  add: { marginTop: spacing.sm },
 });

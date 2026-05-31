@@ -1,5 +1,4 @@
 import React from 'react';
-import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -12,11 +11,20 @@ import { CameraSearchScreen } from '@/screens/ai-search/CameraSearchScreen';
 import { SimilarResultsScreen } from '@/screens/ai-search/SimilarResultsScreen';
 import { BranchesScreen } from '@/screens/branches/BranchesScreen';
 import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen';
+import { AppIcon, IconName } from '@/components/AppIcon';
+import { colors, fonts, fontWeight } from '@/theme';
+
+const headerOptions = {
+  headerStyle: { backgroundColor: colors.paper },
+  headerTintColor: colors.ink,
+  headerTitleStyle: { fontFamily: fonts.display as string, fontSize: 20 },
+  contentStyle: { backgroundColor: colors.paper },
+} as const;
 
 const CatalogStack = createNativeStackNavigator();
 function CatalogNavigator() {
   return (
-    <CatalogStack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#fafaf9' }, headerTintColor: '#1c1917' }}>
+    <CatalogStack.Navigator screenOptions={headerOptions}>
       <CatalogStack.Screen name="Catalog" component={CatalogScreen} options={{ title: 'Catálogo' }} />
       <CatalogStack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ title: 'Detalle' }} />
     </CatalogStack.Navigator>
@@ -26,7 +34,7 @@ function CatalogNavigator() {
 const CartStack = createNativeStackNavigator();
 function CartNavigator() {
   return (
-    <CartStack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#fafaf9' }, headerTintColor: '#1c1917' }}>
+    <CartStack.Navigator screenOptions={headerOptions}>
       <CartStack.Screen name="Cart" component={CartScreen} options={{ title: 'Carrito' }} />
       <CartStack.Screen name="Checkout" component={CheckoutScreen} options={{ title: 'Pago' }} />
       <CartStack.Screen name="Orders" component={OrdersScreen} options={{ title: 'Mis órdenes' }} />
@@ -37,7 +45,7 @@ function CartNavigator() {
 const AIStack = createNativeStackNavigator();
 function AINavigator() {
   return (
-    <AIStack.Navigator screenOptions={{ headerStyle: { backgroundColor: '#fafaf9' }, headerTintColor: '#1c1917' }}>
+    <AIStack.Navigator screenOptions={headerOptions}>
       <AIStack.Screen name="CameraSearch" component={CameraSearchScreen} options={{ title: 'Búsqueda visual' }} />
       <AIStack.Screen name="SimilarResults" component={SimilarResultsScreen} options={{ title: 'Resultados' }} />
     </AIStack.Navigator>
@@ -46,40 +54,28 @@ function AINavigator() {
 
 const Tab = createBottomTabNavigator();
 
+// One factory keeps every tab icon consistent (SVG via AppIcon, never emoji).
+const tabIcon =
+  (name: IconName) =>
+  ({ color, size }: { color: string; size: number }) =>
+    <AppIcon name={name} color={color} size={size ?? 22} />;
+
 export function AppTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1c1917',
-        tabBarInactiveTintColor: '#78716c',
+        tabBarActiveTintColor: colors.ink,
+        tabBarInactiveTintColor: colors.mute,
+        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.line, borderTopWidth: 1, height: 60, paddingBottom: 6, paddingTop: 6 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: fontWeight.medium },
       }}
     >
-      <Tab.Screen
-        name="Catalogo"
-        component={CatalogNavigator}
-        options={{ title: 'Catálogo', tabBarIcon: () => <Text>👗</Text> }}
-      />
-      <Tab.Screen
-        name="Buscar"
-        component={AINavigator}
-        options={{ title: 'Buscar', tabBarIcon: () => <Text>📷</Text> }}
-      />
-      <Tab.Screen
-        name="Carrito"
-        component={CartNavigator}
-        options={{ title: 'Carrito', tabBarIcon: () => <Text>🛍️</Text> }}
-      />
-      <Tab.Screen
-        name="Sucursales"
-        component={BranchesScreen}
-        options={{ title: 'Sucursales', tabBarIcon: () => <Text>📍</Text> }}
-      />
-      <Tab.Screen
-        name="Notificaciones"
-        component={NotificationsScreen}
-        options={{ title: 'Avisos', tabBarIcon: () => <Text>🔔</Text> }}
-      />
+      <Tab.Screen name="Catalogo" component={CatalogNavigator} options={{ title: 'Catálogo', tabBarIcon: tabIcon('catalog') }} />
+      <Tab.Screen name="Buscar" component={AINavigator} options={{ title: 'Buscar', tabBarIcon: tabIcon('search') }} />
+      <Tab.Screen name="Carrito" component={CartNavigator} options={{ title: 'Carrito', tabBarIcon: tabIcon('cart') }} />
+      <Tab.Screen name="Sucursales" component={BranchesScreen} options={{ title: 'Sucursales', tabBarIcon: tabIcon('branches') }} />
+      <Tab.Screen name="Notificaciones" component={NotificationsScreen} options={{ title: 'Avisos', tabBarIcon: tabIcon('notifications') }} />
     </Tab.Navigator>
   );
 }

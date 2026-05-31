@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import type { NavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 
 import { searchSimilarImages, type SimilarityResult } from '@/services/ai/ai.service';
+import { AppButton, AppIcon, ScreenContainer, SectionHeader } from '@/components';
+import { colors, fontSize, radius, spacing } from '@/theme';
 
 type Nav = NavigationProp<{ SimilarResults: { results: SimilarityResult[]; preview: string } }>;
 
@@ -44,53 +46,64 @@ export function CameraSearchScreen() {
         type: picked.mimeType ?? 'image/jpeg',
       });
       navigation.navigate('SimilarResults', { results, preview: picked.uri });
-    } catch (err) {
-      Alert.alert('Error', (err as Error).message);
+    } catch {
+      Alert.alert('Búsqueda no disponible', 'No pudimos procesar la imagen. Inténtalo de nuevo con otra foto.');
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Buscar por imagen</Text>
-      <Text style={styles.subtitle}>Tome una foto de una prenda o suba una imagen, y encontraremos artículos similares en nuestra boutique.</Text>
+    <ScreenContainer scroll>
+      <SectionHeader
+        title="Buscar por imagen"
+        subtitle="Toma una foto de una prenda o sube una imagen y encontraremos artículos similares en la boutique."
+      />
 
       <View style={styles.preview}>
         {picked ? (
           <Image source={{ uri: picked.uri }} style={styles.image} resizeMode="cover" />
         ) : (
-          <Text style={styles.placeholder}>Sin imagen seleccionada</Text>
+          <View style={styles.placeholder}>
+            <AppIcon name="camera" size={30} color={colors.mute} />
+            <Text style={styles.placeholderText}>Sin imagen seleccionada</Text>
+            <Text style={styles.placeholderHint}>Usa la cámara o tu galería</Text>
+          </View>
         )}
       </View>
 
       <View style={styles.buttons}>
-        <TouchableOpacity style={styles.action} onPress={pickFromCamera}>
-          <Text style={styles.actionText}>📷 Cámara</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.action} onPress={pickFromGallery}>
-          <Text style={styles.actionText}>🖼️ Galería</Text>
-        </TouchableOpacity>
+        <AppButton label="Cámara" icon="camera" variant="secondary" onPress={pickFromCamera} style={styles.flex} />
+        <AppButton label="Galería" icon="gallery" variant="secondary" onPress={pickFromGallery} style={styles.flex} />
       </View>
 
-      <TouchableOpacity style={[styles.search, !picked && styles.searchDisabled]} disabled={!picked || busy} onPress={search}>
-        {busy ? <ActivityIndicator color="#fafaf9" /> : <Text style={styles.searchText}>Buscar similares</Text>}
-      </TouchableOpacity>
-    </View>
+      <AppButton
+        label={picked ? 'Buscar similares' : 'Selecciona una imagen'}
+        icon="search"
+        onPress={search}
+        loading={busy}
+        disabled={!picked}
+        fullWidth
+      />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 22, fontWeight: '700' },
-  subtitle: { color: '#78716c', marginTop: 4, marginBottom: 16 },
-  preview: { aspectRatio: 1, backgroundColor: '#f5f5f4', borderRadius: 12, borderColor: '#e7e5e4', borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  preview: {
+    aspectRatio: 1,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.lg,
+    borderColor: colors.line,
+    borderWidth: 1,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   image: { width: '100%', height: '100%' },
-  placeholder: { color: '#78716c' },
-  buttons: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  action: { flex: 1, backgroundColor: '#fff', borderColor: '#e7e5e4', borderWidth: 1, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  actionText: { fontWeight: '600', color: '#1c1917' },
-  search: { backgroundColor: '#1c1917', borderRadius: 10, paddingVertical: 16, alignItems: 'center', marginTop: 16 },
-  searchDisabled: { backgroundColor: '#78716c' },
-  searchText: { color: '#fafaf9', fontWeight: '700' },
+  placeholder: { alignItems: 'center', gap: 6 },
+  placeholderText: { color: colors.ink, fontSize: fontSize.base, fontWeight: '600' },
+  placeholderHint: { color: colors.mute, fontSize: fontSize.sm },
+  buttons: { flexDirection: 'row', gap: spacing.md },
+  flex: { flex: 1 },
 });

@@ -1,32 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { gql, useMutation, useQuery } from '@apollo/client';
 import type { NavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 
 import { useCart } from '@/hooks/useCart';
 import type { Branch } from '@/models';
+import { AppButton, AppCard, AppIcon, AppLoadingState, ScreenContainer, SectionHeader } from '@/components';
+import { colors, fontSize, fontWeight, radius, spacing } from '@/theme';
 
 const BRANCHES_QUERY = gql`query Branches { branches { id code name } }`;
 
 const CREATE_SALE = gql`
   mutation CreateSale($input: CreateSaleInput!) {
-    createSale(input: $input) {
-      id
-      status
-      total
-      currency
-    }
+    createSale(input: $input) { id status total currency }
   }
 `;
 
 const CONFIRM_SALE = gql`
   mutation ConfirmSale($saleId: UUID!) {
-    confirmSale(saleId: $saleId) {
-      id
-      code
-      status
-    }
+    confirmSale(saleId: $saleId) { id code status }
   }
 `;
 
@@ -48,83 +41,82 @@ export function CheckoutScreen() {
 
   const place = async (): Promise<void> => {
     if (!branchId) {
-      Alert.alert('Seleccione una sucursal');
+      Alert.alert('Selecciona una sucursal');
       return;
     }
     try {
       const saleRes = await createSale({
-        variables: {
-          input: {
-            branchId,
-            items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
-          },
-        },
+        variables: { input: { branchId, items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })) } },
       });
       const saleId: string | undefined = saleRes.data?.createSale?.id;
       if (!saleId) {
-        Alert.alert('Error', saleRes.errors?.[0]?.message ?? 'No se pudo crear la venta');
+        Alert.alert('No se pudo crear el pedido', 'Inténtalo de nuevo en unos momentos.');
         return;
       }
       const confirmRes = await confirmSale({ variables: { saleId } });
       const order = confirmRes.data?.confirmSale;
       if (!order) {
-        Alert.alert('Error', confirmRes.errors?.[0]?.message ?? 'No se pudo confirmar la venta');
+        Alert.alert('No se pudo confirmar el pedido', 'Inténtalo de nuevo en unos momentos.');
         return;
       }
       await clear();
       Alert.alert('Orden confirmada', `Código de orden: ${order.code}`, [
         { text: 'Ver órdenes', onPress: () => navigation.navigate('Orders') },
       ]);
-    } catch (err) {
-      Alert.alert('Error', (err as Error).message);
+    } catch {
+      Alert.alert('No se pudo completar el pedido', 'Revisa tu conexión e inténtalo de nuevo.');
     }
   };
 
-  if (loadingBranches) return <View style={styles.center}><ActivityIndicator /></View>;
+  if (loadingBranches) return <AppLoadingState label="Cargando sucursales…" />;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.section}>Sucursal</Text>
-      <View style={{ gap: 8 }}>
-        {data?.branches.map((b) => (
-          <TouchableOpacity
-            key={b.id}
-            style={[styles.branch, branchId === b.id && styles.branchSelected]}
-            onPress={() => setBranchId(b.id)}
-          >
-            <Text style={[styles.branchText, branchId === b.id && styles.branchTextSelected]}>
-              {b.name} ({b.code})
-            </Text>
-          </TouchableOpacity>
-        ))}
+    <ScreenContainer scroll>
+      <SectionHeader title="Sucursal" subtitle="Elige dónde recoger tu pedido" />
+      <View style={styles.branches}>
+        {data?.branches.map((b) => {
+          const active = branchId === b.id;
+          return (
+            <Pressable key={b.id} style={[styles.branch, active && styles.branchSelected]} onPress={() => setBranchId(b.id)}>
+              <AppIcon name="location" size={18} color={active ? colors.paper : colors.accent} />
+              <Text style={[styles.branchText, active && styles.branchTextSelected]}>
+                {b.name} ({b.code})
+              </Text>
+              {active ? <AppIcon name="check" size={18} color={colors.paper} /> : null}
+            </Pressable>
+          );
+        })}
       </View>
 
-      <Text style={styles.section}>Resumen</Text>
-      <View style={styles.summary}>
-        <Text>Productos: {items.length}</Text>
-        <Text>Total: BOB {total.toFixed(2)}</Text>
-      </View>
+      <SectionHeader title="Resumen" />
+      <AppCard style={styles.summary}>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Productos</Text>
+          <Text style={styles.summaryValue}>{items.length}</Text>
+        </View>
+        <View style={[styles.summaryRow, styles.summaryTotal]}>
+          <Text style={styles.summaryLabelTotal}>Total</Text>
+          <Text style={styles.summaryValueTotal}>BOB {total.toFixed(2)}</Text>
+        </View>
+      </AppCard>
 
-      <TouchableOpacity style={styles.confirm} onPress={place} disabled={creating || confirming}>
-        {creating || confirming ? (
-          <ActivityIndicator color="#fafaf9" />
-        ) : (
-          <Text style={styles.confirmText}>Confirmar pedido</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+      <AppButton label="Confirmar pedido" icon="check" onPress={place} loading={creating || confirming} fullWidth style={styles.confirm} />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  section: { fontSize: 14, fontWeight: '700', marginTop: 16, marginBottom: 8 },
-  branch: { borderColor: '#e7e5e4', borderWidth: 1, borderRadius: 10, padding: 12, backgroundColor: '#fff' },
-  branchSelected: { borderColor: '#1c1917', backgroundColor: '#1c1917' },
-  branchText: { color: '#1c1917', fontWeight: '600' },
-  branchTextSelected: { color: '#fafaf9' },
-  summary: { backgroundColor: '#fff', borderColor: '#e7e5e4', borderWidth: 1, borderRadius: 10, padding: 12, gap: 4 },
-  confirm: { marginTop: 24, backgroundColor: '#9a3412', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  confirmText: { color: '#fafaf9', fontWeight: '700' },
+  branches: { gap: spacing.sm },
+  branch: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, backgroundColor: colors.white },
+  branchSelected: { borderColor: colors.ink, backgroundColor: colors.ink },
+  branchText: { flex: 1, color: colors.ink, fontWeight: fontWeight.semibold, fontSize: fontSize.sm },
+  branchTextSelected: { color: colors.paper },
+  summary: { gap: 8 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  summaryLabel: { color: colors.mute, fontSize: fontSize.sm },
+  summaryValue: { color: colors.ink, fontSize: fontSize.sm, fontWeight: fontWeight.medium },
+  summaryTotal: { paddingTop: 8, borderTopColor: colors.line, borderTopWidth: 1 },
+  summaryLabelTotal: { color: colors.ink, fontWeight: fontWeight.bold, fontSize: fontSize.md },
+  summaryValueTotal: { color: colors.accent, fontWeight: fontWeight.bold, fontSize: fontSize.md },
+  confirm: { marginTop: spacing.xs },
 });

@@ -1,19 +1,12 @@
 import React, { useCallback } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/services/auth/auth.context';
 import { useNotifications } from '@/services/notifications/notifications.context';
 import type { InboxItem, NotificationScreenView } from '@/services/notifications/notification-types';
+import { AppButton, AppIcon } from '@/components';
+import type { IconName } from '@/components';
+import { colors, fonts, fontSize, fontWeight, radius, spacing } from '@/theme';
 
 export function NotificationsScreen() {
   const { user, logout } = useAuth();
@@ -23,33 +16,35 @@ export function NotificationsScreen() {
   const onTestPress = useCallback(async () => {
     try {
       await scheduleLocalTest();
-    } catch (err) {
-      Alert.alert('No se pudo programar la notificación', (err as Error).message);
+    } catch {
+      Alert.alert('No se pudo programar la notificación', 'Inténtalo de nuevo más tarde.');
     }
   }, [scheduleLocalTest]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.root} contentContainerStyle={styles.container}>
       <View style={styles.userBlock}>
-        <Text style={styles.userLabel}>Sesión activa</Text>
-        <Text style={styles.userName} selectable>
-          {user?.fullName}
-        </Text>
-        <Text style={styles.userEmail} selectable>
-          {user?.email}
-        </Text>
-        <TouchableOpacity style={styles.logout} onPress={() => logout()}>
+        <View style={styles.userTop}>
+          <View style={styles.userAvatar}>
+            <AppIcon name="notifications" size={18} color={colors.paper} />
+          </View>
+          <View style={styles.userTexts}>
+            <Text style={styles.userLabel}>SESIÓN ACTIVA</Text>
+            <Text style={styles.userName} selectable>{user?.fullName}</Text>
+            <Text style={styles.userEmail} selectable>{user?.email}</Text>
+          </View>
+        </View>
+        <Pressable style={styles.logout} onPress={() => logout()}>
+          <AppIcon name="logout" size={16} color={colors.paper} />
           <Text style={styles.logoutText}>Cerrar sesión</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <View style={styles.header}>
         <Text style={styles.section}>Centro de notificaciones</Text>
         {unreadCount > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText} testID="unread-badge">
-              {unreadCount}
-            </Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText} testID="unread-badge">{unreadCount}</Text>
           </View>
         ) : null}
       </View>
@@ -58,24 +53,41 @@ export function NotificationsScreen() {
 
       {screen.kind === 'loaded' ? (
         <View style={styles.toolbar}>
-          <TouchableOpacity style={styles.linkBtn} onPress={markAllRead}>
+          <Pressable style={styles.linkBtn} onPress={markAllRead}>
             <Text style={styles.linkBtnText}>Marcar todo leído</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.linkBtn} onPress={clearInbox}>
+          </Pressable>
+          <Pressable style={styles.linkBtn} onPress={clearInbox}>
             <Text style={styles.linkBtnText}>Limpiar bandeja</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       ) : null}
     </ScrollView>
   );
 }
 
-function ScreenBody({
-  view,
-  onEnable,
-  onTestPress,
-  markRead,
-}: {
+function StateBox({ testID, icon, tone, title, text, children }: {
+  testID: string;
+  icon: IconName;
+  tone: 'neutral' | 'accent' | 'danger';
+  title: string;
+  text?: string;
+  children?: React.ReactNode;
+}) {
+  const iconColor = tone === 'danger' ? colors.danger : tone === 'accent' ? colors.accent : colors.mute;
+  const bg = tone === 'danger' ? colors.dangerBg : tone === 'accent' ? colors.accentSoft : colors.surfaceAlt;
+  return (
+    <View style={styles.stateBox} testID={testID}>
+      <View style={[styles.stateIcon, { backgroundColor: bg }]}>
+        <AppIcon name={icon} size={22} color={iconColor} />
+      </View>
+      <Text style={styles.stateTitle}>{title}</Text>
+      {text ? <Text style={styles.stateText}>{text}</Text> : null}
+      {children}
+    </View>
+  );
+}
+
+function ScreenBody({ view, onEnable, onTestPress, markRead }: {
   view: NotificationScreenView;
   onEnable: () => Promise<void>;
   onTestPress: () => Promise<void>;
@@ -85,74 +97,43 @@ function ScreenBody({
     case 'loading':
       return (
         <View style={styles.stateBox} testID="state-loading">
-          <ActivityIndicator />
+          <ActivityIndicator color={colors.accent} />
           <Text style={styles.stateText}>Configurando notificaciones…</Text>
         </View>
       );
     case 'denied':
       return (
-        <View style={styles.stateBox} testID="state-denied">
-          <Text style={styles.stateTitle}>Notificaciones desactivadas</Text>
-          <Text style={styles.stateText}>{view.helpText}</Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={onEnable}>
-            <Text style={styles.primaryBtnText}>Reintentar permiso</Text>
-          </TouchableOpacity>
-        </View>
+        <StateBox testID="state-denied" icon="bellOff" tone="accent" title="Notificaciones desactivadas" text={view.helpText}>
+          <AppButton label="Reintentar permiso" icon="refresh" onPress={onEnable} style={styles.stateBtn} />
+        </StateBox>
       );
     case 'unavailable':
-      return (
-        <View style={styles.stateBox} testID="state-unavailable">
-          <Text style={styles.stateTitle}>No disponibles en este dispositivo</Text>
-          <Text style={styles.stateText}>{view.reason}</Text>
-        </View>
-      );
+      return <StateBox testID="state-unavailable" icon="info" tone="neutral" title="No disponibles en este dispositivo" text={view.reason} />;
     case 'error':
       return (
-        <View style={styles.stateBox} testID="state-error">
-          <Text style={styles.stateTitle}>Hubo un problema</Text>
-          <Text style={styles.stateText} selectable>
-            {view.message}
-          </Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={onEnable}>
-            <Text style={styles.primaryBtnText}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
+        <StateBox testID="state-error" icon="alert" tone="danger" title="Hubo un problema" text={view.message}>
+          <AppButton label="Reintentar" icon="refresh" variant="secondary" onPress={onEnable} style={styles.stateBtn} />
+        </StateBox>
       );
     case 'empty':
       return (
-        <View style={styles.stateBox} testID="state-empty">
-          <Text style={styles.stateTitle}>Sin avisos por ahora</Text>
-          <Text style={styles.stateText}>
-            Te avisaremos aquí cuando lleguen nuevas notificaciones de tu pedido o promociones.
-          </Text>
-          <Text style={styles.tokenLine} selectable>
-            Token: {abbreviate(view.token)} · {view.platform}
-          </Text>
-          {Platform.OS !== 'web' ? (
-            <TouchableOpacity style={styles.secondaryBtn} onPress={onTestPress}>
-              <Text style={styles.secondaryBtnText}>Enviar notificación local de prueba</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        <StateBox testID="state-empty" icon="notifications" tone="neutral" title="Sin avisos por ahora" text="Te avisaremos aquí cuando lleguen novedades de tu pedido o promociones.">
+          <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
+          {Platform.OS !== 'web' ? <AppButton label="Enviar notificación de prueba" icon="notifications" variant="secondary" onPress={onTestPress} style={styles.stateBtn} /> : null}
+        </StateBox>
       );
     case 'loaded':
       return (
-        <View testID="state-loaded">
-          <Text style={styles.tokenLine} selectable>
-            Token: {abbreviate(view.token)} · {view.platform}
-          </Text>
+        <View testID="state-loaded" style={styles.loaded}>
+          <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
           <FlatList
             data={view.items}
             keyExtractor={(it) => it.id}
             scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+            ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
             renderItem={({ item }) => <InboxRow item={item} onPress={() => markRead(item.id)} />}
           />
-          {Platform.OS !== 'web' ? (
-            <TouchableOpacity style={styles.secondaryBtn} onPress={onTestPress}>
-              <Text style={styles.secondaryBtnText}>Enviar notificación local de prueba</Text>
-            </TouchableOpacity>
-          ) : null}
+          {Platform.OS !== 'web' ? <AppButton label="Enviar notificación de prueba" icon="notifications" variant="secondary" onPress={onTestPress} style={styles.stateBtn} /> : null}
         </View>
       );
   }
@@ -160,54 +141,58 @@ function ScreenBody({
 
 function InboxRow({ item, onPress }: { item: InboxItem; onPress: () => void }) {
   return (
-    <TouchableOpacity style={[styles.item, !item.read && styles.itemUnread]} onPress={onPress}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.body}>{item.body}</Text>
+    <Pressable style={[styles.item, !item.read && styles.itemUnread]} onPress={onPress}>
+      <View style={styles.itemBody}>
+        <Text style={styles.itemTitle}>{item.title}</Text>
+        <Text style={styles.itemText}>{item.body}</Text>
         <Text style={styles.timestamp}>{new Date(item.receivedAt).toLocaleString('es-BO')}</Text>
       </View>
       {!item.read ? <View style={styles.unreadDot} /> : null}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 function abbreviate(token: string): string {
-  if (token.length <= 24) return token;
+  if (!token || token.length <= 24) return token;
   return `${token.slice(0, 12)}…${token.slice(-8)}`;
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 16 },
-  userBlock: { backgroundColor: '#1c1917', borderRadius: 12, padding: 16 },
-  userLabel: { color: '#a8a29e', fontSize: 11, letterSpacing: 1 },
-  userName: { color: '#fafaf9', fontSize: 18, fontWeight: '700', marginTop: 4 },
-  userEmail: { color: '#a8a29e', marginTop: 2 },
-  logout: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#9a3412', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  logoutText: { color: '#fafaf9', fontWeight: '700' },
+  root: { flex: 1, backgroundColor: colors.paper },
+  container: { padding: spacing.lg, gap: spacing.lg },
+
+  userBlock: { backgroundColor: colors.ink, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
+  userTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  userAvatar: { width: 40, height: 40, borderRadius: radius.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  userTexts: { flex: 1 },
+  userLabel: { color: '#a8a29e', fontSize: 10, letterSpacing: 1.5, fontWeight: fontWeight.semibold },
+  userName: { color: colors.paper, fontSize: fontSize.lg, fontWeight: fontWeight.bold, marginTop: 2 },
+  userEmail: { color: '#a8a29e', marginTop: 1, fontSize: fontSize.sm },
+  logout: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: colors.accent, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.md },
+  logoutText: { color: colors.paper, fontWeight: fontWeight.semibold, fontSize: fontSize.sm },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  section: { fontSize: 16, fontWeight: '700' },
-  badge: { minWidth: 22, height: 22, borderRadius: 11, backgroundColor: '#9a3412', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  badgeText: { color: '#fff', fontWeight: '700', fontSize: 12, fontVariant: ['tabular-nums'] },
+  section: { fontFamily: fonts.display, fontSize: fontSize.xl, color: colors.ink, letterSpacing: -0.3 },
+  countBadge: { minWidth: 22, height: 22, borderRadius: radius.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  countText: { color: colors.paper, fontWeight: fontWeight.bold, fontSize: fontSize.xs, fontVariant: ['tabular-nums'] },
 
-  stateBox: { backgroundColor: '#fff', borderColor: '#e7e5e4', borderWidth: 1, borderRadius: 12, padding: 16, gap: 8, alignItems: 'flex-start' },
-  stateTitle: { fontWeight: '700', fontSize: 14 },
-  stateText: { color: '#57534e', fontSize: 13 },
-  tokenLine: { color: '#78716c', fontSize: 11, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  stateBox: { backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm, alignItems: 'flex-start' },
+  stateIcon: { width: 48, height: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  stateTitle: { fontWeight: fontWeight.semibold, fontSize: fontSize.md, color: colors.ink },
+  stateText: { color: colors.neutralFg, fontSize: fontSize.sm, lineHeight: 19 },
+  stateBtn: { marginTop: spacing.sm },
+  tokenLine: { color: colors.mute, fontSize: fontSize.xs, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
 
-  primaryBtn: { marginTop: 4, backgroundColor: '#1c1917', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
-  primaryBtnText: { color: '#fafaf9', fontWeight: '700' },
-  secondaryBtn: { marginTop: 12, backgroundColor: '#9a3412', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
-  secondaryBtnText: { color: '#fafaf9', fontWeight: '700' },
+  loaded: { gap: spacing.md },
+  item: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
+  itemUnread: { backgroundColor: '#fff7ed', borderColor: colors.accentSoft },
+  itemBody: { flex: 1 },
+  itemTitle: { fontWeight: fontWeight.semibold, fontSize: fontSize.base, color: colors.ink },
+  itemText: { color: colors.inkSoft, marginTop: 3, fontSize: fontSize.sm },
+  timestamp: { color: colors.mute, fontSize: fontSize.xs, marginTop: 6 },
+  unreadDot: { width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colors.accent },
 
-  item: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderColor: '#e7e5e4', borderWidth: 1, borderRadius: 10, padding: 12, gap: 8 },
-  itemUnread: { backgroundColor: '#fff7ed', borderColor: '#fed7aa' },
-  title: { fontWeight: '700' },
-  body: { color: '#44403c', marginTop: 4 },
-  timestamp: { color: '#a8a29e', fontSize: 11, marginTop: 6 },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#9a3412' },
-
-  toolbar: { flexDirection: 'row', gap: 16, justifyContent: 'flex-end' },
+  toolbar: { flexDirection: 'row', gap: spacing.lg, justifyContent: 'flex-end' },
   linkBtn: { paddingVertical: 6 },
-  linkBtnText: { color: '#1c1917', fontWeight: '600' },
+  linkBtnText: { color: colors.ink, fontWeight: fontWeight.semibold, fontSize: fontSize.sm },
 });

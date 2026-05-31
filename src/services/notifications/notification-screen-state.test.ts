@@ -27,7 +27,7 @@ describe('deriveScreenView — permission gates everything', () => {
 });
 
 describe('deriveScreenView — token lifecycle drives UI when permission is OK', () => {
-  it('idle ➜ loading', () => {
+  it('idle -> loading', () => {
     expect(deriveScreenView(inputs({ permission: 'granted', token: { kind: 'idle' } })).kind).toBe('loading');
     expect(deriveScreenView(inputs({ permission: 'granted', token: { kind: 'loading' } })).kind).toBe('loading');
   });
