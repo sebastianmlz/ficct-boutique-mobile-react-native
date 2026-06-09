@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { env } from '@/config/env';
 import { inMemoryToken } from '@/services/auth/token-storage';
 
@@ -12,9 +14,17 @@ export interface SimilarityResult {
 
 export async function searchSimilarImages(image: { uri: string; name: string; type: string }): Promise<SimilarityResult[]> {
   const form = new FormData();
-  // React Native expects { uri, name, type } objects
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form.append('image', { uri: image.uri, name: image.name, type: image.type } as any);
+  if (Platform.OS === 'web') {
+    // On web the picker yields a blob:/data: URI — fetch the bytes and append a
+    // real Blob so the multipart body carries the file (the { uri, name, type }
+    // object form only produces a valid upload on native).
+    const blob = await (await fetch(image.uri)).blob();
+    form.append('image', blob, image.name);
+  } else {
+    // React Native (native) expects { uri, name, type } objects
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form.append('image', { uri: image.uri, name: image.name, type: image.type } as any);
+  }
   form.append('top_k', '6');
 
   const token = inMemoryToken.get();
