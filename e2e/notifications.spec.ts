@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-const ADMIN_EMAIL = 'admin@ficct.local';
-const ADMIN_PASSWORD = 'Admin123!';
-const CUSTOMER_EMAIL = 'cliente@ficct.local';
-const CUSTOMER_PASSWORD = 'Cliente123!';
+const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? '';
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? '';
+const CUSTOMER_EMAIL = process.env.E2E_CUSTOMER_EMAIL ?? '';
+const CUSTOMER_PASSWORD = process.env.E2E_CUSTOMER_PASSWORD ?? '';
 
 // Helper: fill the seeded mobile login form and submit.
 async function login(page: import('@playwright/test').Page, email: string, password: string) {

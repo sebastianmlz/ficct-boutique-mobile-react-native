@@ -202,7 +202,7 @@ npm ci
 npx expo start --web
 ```
 
-1. Sign in as `cliente@ficct.local / Cliente123!`.
+1. Sign in with your customer test account (see local `TEST_ACCOUNTS.local.md`).
 2. Open the "Avisos" tab.
 3. The provider auto-attempts permission + token retrieval. On web, you may see `denied` until you click "Permitir notificaciones" in the browser permission prompt.
 4. Once granted, the registerPushToken mutation fires (visible in the browser network panel as `POST /graphql` with `operationName: "RegisterPushToken"`).

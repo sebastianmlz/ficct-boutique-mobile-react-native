@@ -68,6 +68,6 @@ With the reverse proxy:
 
 ## Identity
 
-Tokens come from Go's `mutation login`. The customer account seeded by `cmd/seed` is `cliente@ficct.local / Cliente123!`. The token's role claim is `customer`; the Go GraphQL backend silently filters writable operations for customers (only `me` and the public catalog queries succeed).
+Tokens come from Go's `mutation login`. The customer account is seeded by `cmd/seed` — use your local customer test credentials (see local `TEST_ACCOUNTS.local.md`). The token's role claim is `customer`; the Go GraphQL backend silently filters writable operations for customers (only `me` and the public catalog queries succeed).
 
-The same login screen would accept `admin@ficct.local` or `staff@ficct.local` — there is no client-side check that bounces non-customers. The role is irrelevant for the screens this app shows. (The Angular admin app is the place where admin/staff features live.)
+The same login screen would accept the admin or staff test accounts — there is no client-side check that bounces non-customers. The role is irrelevant for the screens this app shows. (The Angular admin app is the place where admin/staff features live.)

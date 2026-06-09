@@ -74,7 +74,7 @@ The container's bundle is built with `EXPO_PUBLIC_GRAPHQL_URL=/graphql` and `EXP
 
 ## Signing in
 
-Use the seeded customer: `cliente@ficct.local / Cliente123!`. Admin/staff logins also work but the screens they see are still the customer screens — there's no role-based routing on the mobile side.
+Use the seeded customer test account (see local `TEST_ACCOUNTS.local.md`). Admin/staff logins also work but the screens they see are still the customer screens — there's no role-based routing on the mobile side.
 
 ## Smoke checks
 

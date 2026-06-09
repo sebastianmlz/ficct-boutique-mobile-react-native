@@ -7,8 +7,8 @@ import { colors, fonts, fontSize, spacing } from '@/theme';
 
 export function LoginScreen() {
   const { login, loginError } = useAuth();
-  const [email, setEmail] = useState('cliente@ficct.local');
-  const [password, setPassword] = useState('Cliente123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
 
   const onSubmit = async (): Promise<void> => {
@@ -32,7 +32,7 @@ export function LoginScreen() {
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
-          placeholder="tucorreo@ficct.local"
+          placeholder="tu correo"
         />
         <AppInput label="Contraseña" secureTextEntry value={password} onChangeText={setPassword} placeholder="••••••••" />
         {loginError ? <Text style={styles.error}>{loginError}</Text> : null}
