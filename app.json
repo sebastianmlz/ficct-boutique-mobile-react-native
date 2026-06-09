@@ -38,8 +38,8 @@
       ["expo-notifications", { "icon": "./assets/icon.png", "color": "#9a3412" }]
     ],
     "extra": {
-      "graphqlUrl": "http://10.0.2.2:8080/graphql",
-      "aiApiUrl": "http://10.0.2.2:8000/api/v1"
+      "graphqlUrl": "https://ficct-boutique-backend-go-production.up.railway.app/graphql",
+      "aiApiUrl": "https://ficct-ai-1093089304525.us-central1.run.app/api/v1"
     }
   }
 }
