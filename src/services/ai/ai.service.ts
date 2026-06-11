@@ -12,6 +12,15 @@ export interface SimilarityResult {
   score: number;
 }
 
+/**
+ * Visual search against MS2: uploads an image as multipart/form-data (web
+ * appends a real Blob, native appends the `{ uri, name, type }` object) with
+ * `top_k=6` and an optional bearer token. Content-Type is left unset so fetch
+ * generates the multipart boundary automatically.
+ * @param image Selected image with `uri`, `name`, and MIME `type`.
+ * @returns The list of similar products ranked by score.
+ * @throws Error if the AI service responds with a non-OK status.
+ */
 export async function searchSimilarImages(image: { uri: string; name: string; type: string }): Promise<SimilarityResult[]> {
   const form = new FormData();
   if (Platform.OS === 'web') {

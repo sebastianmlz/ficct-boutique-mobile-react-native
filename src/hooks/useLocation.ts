@@ -7,6 +7,13 @@ export interface LocationResult {
   coords: { latitude: number; longitude: number } | null;
 }
 
+/**
+ * Requests foreground location permission and resolves the device's current
+ * position once on mount. Reports `loading` while in flight, an `error`
+ * message if permission is denied or lookup fails, and `coords` on success.
+ * Cancellation-safe: ignores async results after unmount.
+ * @returns `{ loading, error, coords }` location state.
+ */
 export function useUserLocation(): LocationResult {
   const [coords, setCoords] = useState<LocationResult['coords']>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +51,12 @@ export function useUserLocation(): LocationResult {
   return { loading, error, coords };
 }
 
+/**
+ * Great-circle distance between two coordinates using the haversine formula.
+ * @param a First point `{ latitude, longitude }` in degrees.
+ * @param b Second point `{ latitude, longitude }` in degrees.
+ * @returns Distance in kilometers.
+ */
 export function haversineKm(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }): number {
   const R = 6371; // km
   const toRad = (d: number) => (d * Math.PI) / 180;

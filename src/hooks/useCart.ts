@@ -2,6 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { cartStorage, type CartItem } from '@/services/storage/cart-storage';
 
+/**
+ * Cart hook backed by persistent storage. Hydrates items on mount and keeps
+ * them in sync via `cartStorage`. Exposes mutators (`add` merges by variant,
+ * `remove`, `updateQuantity` removes when qty <= 0, `clear`) and derived
+ * totals (`subtotal`, `tax` at 13%, `total`, `count`).
+ * @returns Cart state, derived totals, mutators, and a `hydrated` flag.
+ */
 export function useCart() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);

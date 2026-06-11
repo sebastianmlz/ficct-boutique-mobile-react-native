@@ -13,6 +13,10 @@ import { buildInboxItem } from './notification-pure';
 // foreground on the OS. Without this, iOS suppresses banners while the app
 // is open, which is confusing during demos.
 let handlerInstalled = false;
+/**
+ * Installs the global foreground notification handler (idempotent) so banners,
+ * sound, and badge behavior are defined while the app is open. Runs once.
+ */
 export function installForegroundHandler(): void {
   if (handlerInstalled) return;
   Notifications.setNotificationHandler({
@@ -25,6 +29,10 @@ export function installForegroundHandler(): void {
   handlerInstalled = true;
 }
 
+/**
+ * Ensures the Android `default` notification channel exists with its name,
+ * importance, vibration pattern, and light color. No-op on non-Android platforms.
+ */
 export async function ensureAndroidChannel(): Promise<void> {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync('default', {
@@ -41,11 +49,19 @@ export function currentPlatform(): NotificationPlatform {
   return 'web';
 }
 
+/**
+ * Reads the current notification permission without prompting the user.
+ * @returns The mapped status: `'granted' | 'denied' | 'undetermined'`.
+ */
 export async function getPermissionStatus(): Promise<PermissionStatus> {
   const settings = await Notifications.getPermissionsAsync();
   return mapStatus(settings.status, settings.granted);
 }
 
+/**
+ * Prompts the user for notification permission (iOS alert/badge/sound).
+ * @returns The resulting status: `'granted' | 'denied' | 'undetermined'`.
+ */
 export async function requestPermission(): Promise<PermissionStatus> {
   const settings = await Notifications.requestPermissionsAsync({
     ios: {
@@ -71,6 +87,11 @@ export type FetchTokenOutcome =
 // Expo push tokens require either a physical device (native) or, on web,
 // a valid Notifications API + a registered service worker. We refuse to fake
 // a token in any other case.
+/**
+ * Obtains an Expo push token for the current platform, using the EAS project
+ * id when available. Refuses to issue one on a non-web emulator/simulator.
+ * @returns A discriminated outcome: `ready` with the token, `unavailable`, or `error`.
+ */
 export async function fetchExpoPushToken(): Promise<FetchTokenOutcome> {
   const platform = currentPlatform();
   try {
@@ -97,6 +118,10 @@ export async function fetchExpoPushToken(): Promise<FetchTokenOutcome> {
 // Local-only notification used for development verification. Does not need
 // APNs/FCM, does not need a push token. Useful for QA and for letting users
 // confirm the channel works.
+/**
+ * Schedules a local-only test notification (~1s delay) to verify the channel
+ * works. Requires no push token, APNs, or FCM.
+ */
 export async function scheduleLocalTestNotification(): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -110,6 +135,11 @@ export async function scheduleLocalTestNotification(): Promise<void> {
 
 export type ForegroundSubscription = { remove: () => void };
 
+/**
+ * Subscribes to notifications received while the app is in the foreground.
+ * @param handler Callback invoked with each received notification.
+ * @returns A subscription whose `remove()` unregisters the listener.
+ */
 export function subscribeToForegroundNotifications(
   handler: (n: Notifications.Notification) => void,
 ): ForegroundSubscription {
@@ -117,6 +147,11 @@ export function subscribeToForegroundNotifications(
   return { remove: () => sub.remove() };
 }
 
+/**
+ * Subscribes to user taps on notifications (responses).
+ * @param handler Callback invoked with the notification response.
+ * @returns A subscription whose `remove()` unregisters the listener.
+ */
 export function subscribeToNotificationTaps(
   handler: (response: Notifications.NotificationResponse) => void,
 ): ForegroundSubscription {
