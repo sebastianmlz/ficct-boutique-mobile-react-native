@@ -21,7 +21,7 @@ so you don't waste time chasing something that cannot run locally.
 
 | Tool | Version this project expects | How to check |
 |------|------------------------------|--------------|
-| Node.js | **20 LTS recommended** (18 LTS minimum). Expo SDK 51 supports Node 18 and 20. Avoid odd/very new majors. | `node -v` |
+| Node.js | **20 LTS recommended** (Node 20+ required). Expo SDK 54 needs Node 20 or newer. Avoid odd/very new majors. | `node -v` |
 | npm | Bundled with Node 20 (npm 10) | `npm -v` |
 | Expo CLI | Use the **bundled** CLI via `npx expo` — do **not** `npm i -g expo-cli` (the global `expo-cli` is deprecated) | `npx expo --version` |
 | Git | any recent | `git --version` |
@@ -37,17 +37,18 @@ Get-Content package.json | Select-String "expo|react-native|typescript|navigatio
 
 At time of writing this repo is on:
 
-- `expo` `~51.0.39`  (Expo SDK **51**)
-- `react-native` `0.74.5`
-- `react` `18.2.0`
-- `typescript` `~5.3.3`
+- `expo` `^54.0.35`  (Expo SDK **54**)
+- `react-native` `0.81.5`
+- `react` `19.1.0`
+- `typescript` `~5.9.2`
 - `@react-navigation/*` v6
 - `@apollo/client` `^3.11.8`
-- `expo-notifications`, `expo-location`, `expo-image-picker`, `expo-device`, `expo-secure-store`
+- `expo-notifications`, `expo-location`, `expo-image-picker`, `expo-device`, `expo-secure-store`, `@expo/vector-icons`, `expo-font`
 
-The Expo Go app you install on your phone **must match SDK 51**. If your phone's Expo Go
-has already auto-updated to a newer SDK, install the matching older Expo Go from the
-store listing's version history, or use a development build (see iOS section).
+This project is on **SDK 54**, which matches the current Expo Go in the App Store /
+Play Store — just install the **latest** Expo Go and it works directly (no need to find
+an older Expo Go version). The app is linked to an EAS project (`expo.extra.eas.projectId`
+in `app.json`), which is required for push-notification tokens.
 
 ### Install dependencies
 
@@ -244,13 +245,18 @@ How push works in this app is documented in detail in
 [`docs/architecture/PUSH_NOTIFICATIONS.md`](architecture/PUSH_NOTIFICATIONS.md). Summary
 for testing:
 
-**Important limitations (be realistic about Expo Go):**
+**Important limitations (be realistic about Expo Go on SDK 54):**
 - Remote push tokens require a **physical device** — emulators/simulators return
   `unavailable` by design.
-- The repo currently has **no `expo.extra.eas.projectId`** in `app.json`. In Expo Go,
-  Android tokens still mint; **iOS production delivery and standalone builds require an
-  EAS `projectId`** plus an APNs key. So production push may require EAS configuration
-  (`npx eas init`, then `eas credentials:configure`).
+- **Expo Go no longer supports remote push notifications on SDK 53+** (this project is
+  SDK 54). `getExpoPushTokenAsync()` / remote delivery will not work inside Expo Go on
+  either platform anymore. To test **real remote push**, create a **development build**
+  (`npx expo run:android` / `run:ios`, or `eas build --profile development`).
+- `expo.extra.eas.projectId` **is now configured** in `app.json` (the app is linked to an
+  EAS project), so a dev build can mint usable tokens; iOS additionally needs an APNs key
+  via `eas credentials:configure`.
+- The **local test notification still works inside Expo Go** (it does not need a token or
+  APNs/FCM) — use it to verify the channel/UI without a dev build.
 
 **Steps (physical device):**
 1. **Log in** with your test account.

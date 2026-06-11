@@ -11,6 +11,7 @@ import { CameraSearchScreen } from '@/screens/ai-search/CameraSearchScreen';
 import { SimilarResultsScreen } from '@/screens/ai-search/SimilarResultsScreen';
 import { BranchesScreen } from '@/screens/branches/BranchesScreen';
 import { NotificationsScreen } from '@/screens/notifications/NotificationsScreen';
+import { useCart } from '@/hooks/useCart';
 import { AppIcon, IconName } from '@/components/AppIcon';
 import { colors, fonts, fontWeight } from '@/theme';
 
@@ -61,6 +62,8 @@ const tabIcon =
     <AppIcon name={name} color={color} size={size ?? 22} />;
 
 export function AppTabs() {
+  // Shared cart store: the badge updates live as items are added/removed.
+  const { count } = useCart();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -73,7 +76,16 @@ export function AppTabs() {
     >
       <Tab.Screen name="Catalogo" component={CatalogNavigator} options={{ title: 'Catálogo', tabBarIcon: tabIcon('catalog') }} />
       <Tab.Screen name="Buscar" component={AINavigator} options={{ title: 'Buscar', tabBarIcon: tabIcon('search') }} />
-      <Tab.Screen name="Carrito" component={CartNavigator} options={{ title: 'Carrito', tabBarIcon: tabIcon('cart') }} />
+      <Tab.Screen
+        name="Carrito"
+        component={CartNavigator}
+        options={{
+          title: 'Carrito',
+          tabBarIcon: tabIcon('cart'),
+          tabBarBadge: count > 0 ? count : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.accent, color: colors.paper, fontSize: 10 },
+        }}
+      />
       <Tab.Screen name="Sucursales" component={BranchesScreen} options={{ title: 'Sucursales', tabBarIcon: tabIcon('branches') }} />
       <Tab.Screen name="Notificaciones" component={NotificationsScreen} options={{ title: 'Avisos', tabBarIcon: tabIcon('notifications') }} />
     </Tab.Navigator>

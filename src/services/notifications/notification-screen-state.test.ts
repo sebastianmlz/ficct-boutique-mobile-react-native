@@ -27,25 +27,52 @@ describe('deriveScreenView — permission gates everything', () => {
 });
 
 describe('deriveScreenView — token lifecycle drives UI when permission is OK', () => {
-  it('idle -> loading', () => {
-    expect(deriveScreenView(inputs({ permission: 'granted', token: { kind: 'idle' } })).kind).toBe('loading');
+  it('loading only while a token fetch is actively in flight', () => {
     expect(deriveScreenView(inputs({ permission: 'granted', token: { kind: 'loading' } })).kind).toBe('loading');
   });
 
-  it('forwards unavailable reason verbatim', () => {
-    const view = deriveScreenView(
-      inputs({ permission: 'granted', token: { kind: 'unavailable', reason: 'emulador' } }),
-    );
-    expect(view.kind).toBe('unavailable');
-    if (view.kind === 'unavailable') expect(view.reason).toBe('emulador');
+  it('idle never renders the spinner: it falls back to empty without token', () => {
+    const idleGranted = deriveScreenView(inputs({ permission: 'granted', token: { kind: 'idle' } }));
+    expect(idleGranted.kind).toBe('empty');
+    if (idleGranted.kind === 'empty') {
+      expect(idleGranted.token).toBeUndefined();
+      expect(idleGranted.enabled).toBe(true);
+    }
+
+    const idleUndetermined = deriveScreenView(inputs({ permission: 'undetermined', token: { kind: 'idle' } }));
+    expect(idleUndetermined.kind).toBe('empty');
+    if (idleUndetermined.kind === 'empty') expect(idleUndetermined.enabled).toBe(false);
   });
 
-  it('forwards error message verbatim', () => {
-    const view = deriveScreenView(
+  it('inbox items always show, even when the token is unavailable or errored', () => {
+    const unavailable = deriveScreenView(
+      inputs({ permission: 'granted', token: { kind: 'unavailable', reason: 'Expo Go' }, items: [baseItem] }),
+    );
+    expect(unavailable.kind).toBe('loaded');
+    if (unavailable.kind === 'loaded') {
+      expect(unavailable.items).toHaveLength(1);
+      expect(unavailable.token).toBeUndefined();
+      expect(unavailable.unreadCount).toBe(1);
+    }
+
+    const errored = deriveScreenView(
+      inputs({ permission: 'granted', token: { kind: 'error', message: 'boom' }, items: [baseItem] }),
+    );
+    expect(errored.kind).toBe('loaded');
+  });
+
+  it('token unavailable/error is never surfaced as a problem when permission is granted', () => {
+    const unavailable = deriveScreenView(
+      inputs({ permission: 'granted', token: { kind: 'unavailable', reason: 'emulador' } }),
+    );
+    expect(unavailable.kind).toBe('empty');
+    if (unavailable.kind === 'empty') expect(unavailable.enabled).toBe(true);
+
+    const errored = deriveScreenView(
       inputs({ permission: 'granted', token: { kind: 'error', message: 'no project id' } }),
     );
-    expect(view.kind).toBe('error');
-    if (view.kind === 'error') expect(view.message).toBe('no project id');
+    expect(errored.kind).toBe('empty');
+    if (errored.kind === 'empty') expect(errored.enabled).toBe(true);
   });
 });
 

@@ -107,25 +107,29 @@ function ScreenBody({ view, onEnable, onTestPress, markRead }: {
           <AppButton label="Reintentar permiso" icon="refresh" onPress={onEnable} style={styles.stateBtn} />
         </StateBox>
       );
-    case 'unavailable':
-      return <StateBox testID="state-unavailable" icon="info" tone="neutral" title="No disponibles en este dispositivo" text={view.reason} />;
-    case 'error':
-      return (
-        <StateBox testID="state-error" icon="alert" tone="danger" title="Hubo un problema" text={view.message}>
-          <AppButton label="Reintentar" icon="refresh" variant="secondary" onPress={onEnable} style={styles.stateBtn} />
-        </StateBox>
-      );
     case 'empty':
       return (
         <StateBox testID="state-empty" icon="notifications" tone="neutral" title="Sin avisos por ahora" text="Te avisaremos aquí cuando lleguen novedades de tu pedido o promociones.">
-          <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
+          {view.enabled ? (
+            <View style={styles.enabledRow}>
+              <AppIcon name="check" size={14} color={colors.successFg} />
+              <Text style={styles.enabledText}>Notificaciones activadas — recibirás avisos de tu carrito y pedidos.</Text>
+            </View>
+          ) : (
+            <AppButton label="Activar notificaciones" icon="notifications" onPress={onEnable} style={styles.stateBtn} />
+          )}
+          {view.token ? (
+            <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
+          ) : null}
           {Platform.OS !== 'web' ? <AppButton label="Enviar notificación de prueba" icon="notifications" variant="secondary" onPress={onTestPress} style={styles.stateBtn} /> : null}
         </StateBox>
       );
     case 'loaded':
       return (
         <View testID="state-loaded" style={styles.loaded}>
-          <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
+          {view.token ? (
+            <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
+          ) : null}
           <FlatList
             data={view.items}
             keyExtractor={(it) => it.id}
@@ -181,6 +185,8 @@ const styles = StyleSheet.create({
   stateTitle: { fontWeight: fontWeight.semibold, fontSize: fontSize.md, color: colors.ink },
   stateText: { color: colors.neutralFg, fontSize: fontSize.sm, lineHeight: 19 },
   stateBtn: { marginTop: spacing.sm },
+  enabledRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.successBg, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  enabledText: { flex: 1, color: colors.successFg, fontSize: fontSize.sm, fontWeight: fontWeight.medium },
   tokenLine: { color: colors.mute, fontSize: fontSize.xs, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
 
   loaded: { gap: spacing.md },

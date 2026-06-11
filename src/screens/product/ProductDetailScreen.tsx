@@ -6,6 +6,7 @@ import { useRoute } from '@react-navigation/native';
 
 import type { Product, Variant } from '@/models';
 import { useCart } from '@/hooks/useCart';
+import { presentLocalNotification } from '@/services/notifications/notifications.service';
 import { AppBadge, AppButton, AppErrorState, AppIcon, AppLoadingState, ScreenContainer } from '@/components';
 import { colors, fonts, fontSize, fontWeight, radius, spacing } from '@/theme';
 
@@ -62,7 +63,13 @@ export function ProductDetailScreen() {
       quantity: 1,
       imageUrl: product.imageUrl,
     });
-    Alert.alert('Añadido al carrito', `${product.name} · ${selected.size} / ${selected.color}`);
+    const detail = `${product.name} · ${selected.size} / ${selected.color}`;
+    const notified = await presentLocalNotification('Añadido al carrito', detail, {
+      event: 'cart-add',
+      productId: product.id,
+      variantId: selected.id,
+    });
+    if (!notified) Alert.alert('Añadido al carrito', detail);
   };
 
   return (

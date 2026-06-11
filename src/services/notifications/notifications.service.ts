@@ -4,7 +4,7 @@
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 import type { NotificationPlatform, PermissionStatus } from './notification-types';
 import { buildInboxItem } from './notification-pure';
@@ -22,6 +22,8 @@ export function installForegroundHandler(): void {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
     }),
@@ -101,6 +103,16 @@ export async function fetchExpoPushToken(): Promise<FetchTokenOutcome> {
         reason: 'Las notificaciones push solo funcionan en un dispositivo físico, no en el emulador.',
       };
     }
+    // Expo Go (SDK 53+) removed remote push support entirely; report it as an
+    // honest "unavailable" instead of letting getExpoPushTokenAsync throw.
+    // Local event notifications (cart, pedidos) keep working in Expo Go.
+    if (platform !== 'web' && Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+      return {
+        kind: 'unavailable',
+        reason:
+          'Las notificaciones push remotas no están disponibles en Expo Go. Los avisos de la app (carrito y pedidos) seguirán apareciendo aquí.',
+      };
+    }
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ??
       Constants.easConfig?.projectId ??
@@ -129,8 +141,43 @@ export async function scheduleLocalTestNotification(): Promise<void> {
       body: 'Notificación de prueba local — el canal está funcionando.',
       data: { kind: 'local-test', at: new Date().toISOString() },
     },
-    trigger: { seconds: 1 },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 1 },
   });
+}
+
+/**
+ * Presents an immediate local notification for an in-app event (cart add,
+ * order confirmed, etc.). Local-only: works in Expo Go, needs no push token,
+ * APNs, or FCM. Requests permission on first use if still undetermined, and
+ * shows as a banner in the foreground via the installed handler.
+ * @param title Notification title.
+ * @param body Notification body text.
+ * @param data Optional payload merged into the notification's `data`.
+ * @returns `true` if scheduled; `false` when permission is denied or it fails.
+ */
+export async function presentLocalNotification(
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+): Promise<boolean> {
+  try {
+    installForegroundHandler();
+    let status = await getPermissionStatus();
+    if (status === 'undetermined') status = await requestPermission();
+    if (status !== 'granted') return false;
+    await ensureAndroidChannel();
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: { kind: 'local-event', ...(data ?? {}) },
+      },
+      trigger: null,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export type ForegroundSubscription = { remove: () => void };
