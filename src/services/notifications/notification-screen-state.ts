@@ -1,7 +1,7 @@
 import type { InboxItem, NotificationScreenView, PermissionStatus, TokenStatus } from './notification-types';
 
 const DENIED_HELP =
-  'Activa las notificaciones desde la configuración del sistema para recibir avisos de promociones y de tus pedidos.';
+  'Las notificaciones están desactivadas. Para activarlas abre la Configuración del sistema → Apps → Notificaciones, permite los avisos para esta app y vuelve a intentar.';
 
 export function deriveScreenView(input: {
   permission: PermissionStatus;
@@ -28,16 +28,11 @@ export function deriveScreenView(input: {
     }
     return { kind: 'loaded', items, unreadCount };
   }
-  if (token.kind === 'unavailable') {
-    return { kind: 'unavailable', reason: token.reason };
-  }
-  if (token.kind === 'error') {
-    return { kind: 'error', message: token.message };
-  }
   if (token.kind === 'ready') {
-    return { kind: 'empty', token: token.token, platform: token.platform };
+    return { kind: 'empty', enabled: true, token: token.token, platform: token.platform };
   }
-  // token.kind === 'idle' — nothing requested yet (e.g. permission still
-  // undetermined). Render the empty inbox with the enable CTA.
-  return { kind: 'empty' };
+  // App-event notifications work whenever permission is granted — a remote
+  // push token is only needed for server-sent campaigns, so its absence
+  // (idle/unavailable/error) is never surfaced as a problem to the customer.
+  return { kind: 'empty', enabled: permission === 'granted' };
 }

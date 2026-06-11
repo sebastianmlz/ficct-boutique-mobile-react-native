@@ -21,7 +21,5 @@ export interface InboxItem {
 export type NotificationScreenView =
   | { kind: 'loading' }
   | { kind: 'denied'; helpText: string }
-  | { kind: 'unavailable'; reason: string }
-  | { kind: 'error'; message: string }
-  | { kind: 'empty'; token?: string; platform?: NotificationPlatform }
+  | { kind: 'empty'; enabled: boolean; token?: string; platform?: NotificationPlatform }
   | { kind: 'loaded'; token?: string; platform?: NotificationPlatform; items: InboxItem[]; unreadCount: number };
