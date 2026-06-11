@@ -13,8 +13,20 @@ export function deriveScreenView(input: {
   if (permission === 'denied') {
     return { kind: 'denied', helpText: DENIED_HELP };
   }
-  if (token.kind === 'idle' || token.kind === 'loading') {
+  // Spinner ONLY while a token fetch is actively in flight. 'idle' must never
+  // render as loading: if permission was not granted at login, the token stays
+  // idle forever and the old mapping left the screen stuck on the spinner.
+  if (token.kind === 'loading') {
     return { kind: 'loading' };
+  }
+  // The inbox is fed by local event notifications (cart, orders) that need no
+  // push token, so received items are always shown regardless of token state.
+  if (items.length > 0) {
+    const unreadCount = items.reduce((n, it) => (it.read ? n : n + 1), 0);
+    if (token.kind === 'ready') {
+      return { kind: 'loaded', token: token.token, platform: token.platform, items, unreadCount };
+    }
+    return { kind: 'loaded', items, unreadCount };
   }
   if (token.kind === 'unavailable') {
     return { kind: 'unavailable', reason: token.reason };
@@ -22,16 +34,10 @@ export function deriveScreenView(input: {
   if (token.kind === 'error') {
     return { kind: 'error', message: token.message };
   }
-  // token.kind === 'ready'
-  if (items.length === 0) {
+  if (token.kind === 'ready') {
     return { kind: 'empty', token: token.token, platform: token.platform };
   }
-  const unreadCount = items.reduce((n, it) => (it.read ? n : n + 1), 0);
-  return {
-    kind: 'loaded',
-    token: token.token,
-    platform: token.platform,
-    items,
-    unreadCount,
-  };
+  // token.kind === 'idle' — nothing requested yet (e.g. permission still
+  // undetermined). Render the empty inbox with the enable CTA.
+  return { kind: 'empty' };
 }

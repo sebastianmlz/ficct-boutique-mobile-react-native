@@ -118,14 +118,20 @@ function ScreenBody({ view, onEnable, onTestPress, markRead }: {
     case 'empty':
       return (
         <StateBox testID="state-empty" icon="notifications" tone="neutral" title="Sin avisos por ahora" text="Te avisaremos aquí cuando lleguen novedades de tu pedido o promociones.">
-          <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
+          {view.token ? (
+            <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
+          ) : (
+            <AppButton label="Activar notificaciones" icon="notifications" onPress={onEnable} style={styles.stateBtn} />
+          )}
           {Platform.OS !== 'web' ? <AppButton label="Enviar notificación de prueba" icon="notifications" variant="secondary" onPress={onTestPress} style={styles.stateBtn} /> : null}
         </StateBox>
       );
     case 'loaded':
       return (
         <View testID="state-loaded" style={styles.loaded}>
-          <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
+          {view.token ? (
+            <Text style={styles.tokenLine} selectable>Dispositivo: {abbreviate(view.token)} · {view.platform}</Text>
+          ) : null}
           <FlatList
             data={view.items}
             keyExtractor={(it) => it.id}

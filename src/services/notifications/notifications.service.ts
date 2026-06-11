@@ -4,7 +4,7 @@
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 import type { NotificationPlatform, PermissionStatus } from './notification-types';
 import { buildInboxItem } from './notification-pure';
@@ -101,6 +101,16 @@ export async function fetchExpoPushToken(): Promise<FetchTokenOutcome> {
       return {
         kind: 'unavailable',
         reason: 'Las notificaciones push solo funcionan en un dispositivo físico, no en el emulador.',
+      };
+    }
+    // Expo Go (SDK 53+) removed remote push support entirely; report it as an
+    // honest "unavailable" instead of letting getExpoPushTokenAsync throw.
+    // Local event notifications (cart, pedidos) keep working in Expo Go.
+    if (platform !== 'web' && Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+      return {
+        kind: 'unavailable',
+        reason:
+          'Las notificaciones push remotas no están disponibles en Expo Go. Los avisos de la app (carrito y pedidos) seguirán apareciendo aquí.',
       };
     }
     const projectId =
