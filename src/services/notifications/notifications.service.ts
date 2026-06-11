@@ -22,6 +22,8 @@ export function installForegroundHandler(): void {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
     }),
@@ -129,7 +131,7 @@ export async function scheduleLocalTestNotification(): Promise<void> {
       body: 'Notificación de prueba local — el canal está funcionando.',
       data: { kind: 'local-test', at: new Date().toISOString() },
     },
-    trigger: { seconds: 1 },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 1 },
   });
 }
 

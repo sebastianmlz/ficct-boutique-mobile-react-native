@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "FICCT Boutique",
-    "slug": "ficct-boutique-mobile",
+    "slug": "ficct-boutique",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,7 +20,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "bo.edu.ficct.boutique",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -29,17 +31,47 @@
         "backgroundColor": "#fafaf9"
       },
       "package": "bo.edu.ficct.boutique",
-      "permissions": ["NOTIFICATIONS"]
+      "permissions": [
+        "android.permission.NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
-    "web": { "favicon": "./assets/icon.png", "bundler": "metro" },
+    "web": {
+      "favicon": "./assets/icon.png",
+      "bundler": "metro"
+    },
     "plugins": [
-      ["expo-image-picker", { "photosPermission": "Permitir acceso a fotos para buscar prendas similares." }],
-      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Permitir ubicación para mostrar la sucursal más cercana." }],
-      ["expo-notifications", { "icon": "./assets/icon.png", "color": "#9a3412" }]
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permitir acceso a fotos para buscar prendas similares."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permitir ubicación para mostrar la sucursal más cercana."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#9a3412"
+        }
+      ],
+      "expo-secure-store",
+      "expo-font"
     ],
     "extra": {
       "graphqlUrl": "https://ficct-boutique-backend-go-production.up.railway.app/graphql",
-      "aiApiUrl": "https://ficct-ai-1093089304525.us-central1.run.app/api/v1"
-    }
+      "aiApiUrl": "https://ficct-ai-1093089304525.us-central1.run.app/api/v1",
+      "eas": {
+        "projectId": "a1b9da6a-715f-4229-b4a9-20c6546b1cdd"
+      }
+    },
+    "owner": "victoroides-organization"
   }
 }
