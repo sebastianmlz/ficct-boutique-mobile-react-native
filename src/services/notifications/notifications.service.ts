@@ -135,6 +135,41 @@ export async function scheduleLocalTestNotification(): Promise<void> {
   });
 }
 
+/**
+ * Presents an immediate local notification for an in-app event (cart add,
+ * order confirmed, etc.). Local-only: works in Expo Go, needs no push token,
+ * APNs, or FCM. Requests permission on first use if still undetermined, and
+ * shows as a banner in the foreground via the installed handler.
+ * @param title Notification title.
+ * @param body Notification body text.
+ * @param data Optional payload merged into the notification's `data`.
+ * @returns `true` if scheduled; `false` when permission is denied or it fails.
+ */
+export async function presentLocalNotification(
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+): Promise<boolean> {
+  try {
+    installForegroundHandler();
+    let status = await getPermissionStatus();
+    if (status === 'undetermined') status = await requestPermission();
+    if (status !== 'granted') return false;
+    await ensureAndroidChannel();
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: { kind: 'local-event', ...(data ?? {}) },
+      },
+      trigger: null,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export type ForegroundSubscription = { remove: () => void };
 
 /**

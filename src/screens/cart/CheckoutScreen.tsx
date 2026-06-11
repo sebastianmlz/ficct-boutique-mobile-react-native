@@ -5,6 +5,7 @@ import type { NavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 
 import { useCart } from '@/hooks/useCart';
+import { presentLocalNotification } from '@/services/notifications/notifications.service';
 import type { Branch } from '@/models';
 import { AppButton, AppCard, AppIcon, AppLoadingState, ScreenContainer, SectionHeader } from '@/components';
 import { colors, fontSize, fontWeight, radius, spacing } from '@/theme';
@@ -60,6 +61,11 @@ export function CheckoutScreen() {
         return;
       }
       await clear();
+      void presentLocalNotification(
+        'Pedido confirmado',
+        `Tu orden ${order.code} fue registrada. ¡Gracias por tu compra!`,
+        { event: 'order-confirmed', orderCode: order.code },
+      );
       Alert.alert('Orden confirmada', `Código de orden: ${order.code}`, [
         { text: 'Ver órdenes', onPress: () => navigation.navigate('Orders') },
       ]);
